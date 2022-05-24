@@ -300,10 +300,15 @@ func (c *Config) GetProgram(name string) *Entry {
 
 // GetBool gets value of key as bool
 func (c *Entry) GetBool(key string, defValue bool) bool {
-	value, ok := c.keyValues[key]
+	ov, ok := c.keyValues[key]
 
 	if ok {
-		b, err := strconv.ParseBool(value)
+		v, err := NewStringExpression().Eval(ov)
+		if err != nil {
+			return defValue
+		}
+
+		b, err := strconv.ParseBool(v)
 		if err == nil {
 			return b
 		}
@@ -327,10 +332,13 @@ func toInt(s string, factor int, defValue int) int {
 
 // GetInt gets value of the key as int
 func (c *Entry) GetInt(key string, defValue int) int {
-	value, ok := c.keyValues[key]
-
+	ov, ok := c.keyValues[key]
 	if ok {
-		return toInt(value, 1, defValue)
+		v, err := NewStringExpression().Eval(ov)
+		if err != nil {
+			return defValue
+		}
+		return toInt(v, 1, defValue)
 	}
 	return defValue
 }
@@ -402,11 +410,11 @@ func (c *Entry) GetString(key string, defValue string) string {
 	s, ok := c.keyValues[key]
 
 	if ok {
-		env := NewStringExpression("here", c.ConfigDir)
-		repS, err := env.Eval(s)
+		repS, err := NewStringExpression("here", c.ConfigDir).Eval(s)
 		if err == nil {
 			return repS
 		}
+
 		log.WithFields(log.Fields{
 			log.ErrorKey: err,
 			"program":    c.GetProgramName(),
@@ -450,6 +458,7 @@ func (c *Entry) GetStringArray(key string, sep string) []string {
 	s, ok := c.keyValues[key]
 
 	if ok {
+
 		return strings.Split(s, sep)
 	}
 	return make([]string, 0)
@@ -463,9 +472,14 @@ func (c *Entry) GetStringArray(key string, sep string) []string {
 //	logSize=1024
 //
 func (c *Entry) GetBytes(key string, defValue int) int {
-	v, ok := c.keyValues[key]
+	ov, ok := c.keyValues[key]
 
 	if ok {
+		v, err := NewStringExpression().Eval(ov)
+		if err != nil {
+			return defValue
+		}
+
 		if len(v) > 2 {
 			lastTwoBytes := v[len(v)-2:]
 			if lastTwoBytes == "MB" {
