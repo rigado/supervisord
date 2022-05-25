@@ -103,7 +103,14 @@ func (l *FileLogger) openFile(trunc bool) error {
 	return err
 }
 
+// append .N+1 to the end of each file
 func (l *FileLogger) backupFiles() {
+	if l.backups == 0 {
+		//nothing to do
+		return
+	}
+
+	// mylog.log -> mylog.log.1, mylog.log.1 -> mylog.log.2, ... etc
 	for i := l.backups - 1; i > 0; i-- {
 		src := fmt.Sprintf("%s.%d", l.name, i)
 		dest := fmt.Sprintf("%s.%d", l.name, i+1)
@@ -270,6 +277,7 @@ func (l *FileLogger) Write(p []byte) (int, error) {
 			return n, errStat
 		}
 	}
+
 	if l.fileSize >= l.maxSize {
 		l.Close()
 		l.backupFiles()
